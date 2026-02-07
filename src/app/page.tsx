@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PhotoFrameApp } from "@/components/photo-frame-app";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://carnaval-san-isidro.vercel.app"),
   title: "Carnaval San Isidro 2026 - Armá tu foto",
   description:
     "Subí tu foto, ponele el marco del Carnaval San Isidro 2026 y compartila en tus redes sociales. WhatsApp, Instagram, Facebook y más!",
