@@ -28,9 +28,27 @@ export function PhotoFrameApp() {
 
   // Check native share on mount
   useEffect(() => {
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      setCanNativeShare(true);
-    }
+    const checkShareSupport = async () => {
+      if (typeof navigator === "undefined" || !navigator.share) {
+        return;
+      }
+
+      // Check if we can share files (mobile browsers)
+      try {
+        const testFile = new File(["test"], "test.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [testFile] })) {
+          setCanNativeShare(true);
+        }
+      } catch {
+        // canShare not supported or failed, check if it's a mobile device
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile) {
+          setCanNativeShare(true);
+        }
+      }
+    };
+
+    checkShareSupport();
   }, []);
 
   const handleFileSelect = useCallback(
@@ -66,25 +84,52 @@ export function PhotoFrameApp() {
         type: "image/png",
       });
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: "Carnaval San Isidro 2026",
-          files: [file],
-        });
-      } else {
-        // fallback download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
+      // Try native share first
+      if (navigator.share) {
+        try {
+          // Check if we can share files
+          const canShareFiles = navigator.canShare?.({ files: [file] });
+          
+          if (canShareFiles) {
+            await navigator.share({
+              files: [file],
+            });
+          } else {
+            // Try sharing without files (just text/url as fallback)
+            // But first, download the file so user has it
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+          
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 2000);
+          return;
+        } catch (shareError) {
+          // If share was cancelled, don't fallback to download
+          if ((shareError as Error).name === "AbortError") {
+            return;
+          }
+          // For other errors, fall through to download
+          console.log("Share failed, falling back to download:", shareError);
+        }
       }
+
+      // Fallback: download directly
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (err) {
-      if ((err as Error).name !== "AbortError") console.error(err);
+      console.error("Export error:", err);
     } finally {
       setIsExporting(false);
     }
