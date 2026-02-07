@@ -4,7 +4,7 @@
   "description": "Armá tu foto con el marco del Carnaval San Isidro 2026",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
+  "background_color": "#ffffff",
   "theme_color": "#7c3aed",
   "orientation": "portrait",
   "icons": [
