@@ -24,31 +24,13 @@ export function PhotoFrameApp() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [canNativeShare, setCanNativeShare] = useState(false);
+  const [hasNativeShare, setHasNativeShare] = useState(false);
 
-  // Check native share on mount
+  // Detect if navigator.share exists (for icon/text display only)
   useEffect(() => {
-    const checkShareSupport = async () => {
-      if (typeof navigator === "undefined" || !navigator.share) {
-        return;
-      }
-
-      // Check if we can share files (mobile browsers)
-      try {
-        const testFile = new File(["test"], "test.png", { type: "image/png" });
-        if (navigator.canShare?.({ files: [testFile] })) {
-          setCanNativeShare(true);
-        }
-      } catch {
-        // canShare not supported or failed, check if it's a mobile device
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobile) {
-          setCanNativeShare(true);
-        }
-      }
-    };
-
-    checkShareSupport();
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      setHasNativeShare(true);
+    }
   }, []);
 
   const handleFileSelect = useCallback(
@@ -84,73 +66,26 @@ export function PhotoFrameApp() {
         type: "image/png",
       });
 
-      // Try native share first
-      if (navigator.share) {
-        try {
-          // Check if we can share files
-          const canShareFiles = navigator.canShare?.({ files: [file] });
-          
-          if (canShareFiles) {
-            await navigator.share({
-              files: [file],
-            });
-          } else {
-            // Try sharing without files (just text/url as fallback)
-            // But first, download the file so user has it
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = file.name;
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-          
-          setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 2000);
-          return;
-        } catch (shareError) {
-          // If share was cancelled, don't fallback to download
-          if ((shareError as Error).name === "AbortError") {
-            return;
-          }
-          // For other errors, fall through to download
-          console.log("Share failed, falling back to download:", shareError);
-        }
+      // Try native share directly (no canShare check)
+      try {
+        await navigator.share({ files: [file] });
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        return;
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        // Any other error: fall through to download
       }
 
-      // Fallback: download directly
+      // Fallback: download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = file.name;
       a.click();
       URL.revokeObjectURL(url);
-
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-    } catch (err) {
-      console.error("Export error:", err);
-    } finally {
-      setIsExporting(false);
-    }
-  }, []);
-
-  const handleDownload = useCallback(async () => {
-    if (!canvasRef.current) return;
-    setIsExporting(true);
-    try {
-      const blob = await canvasRef.current.exportImage();
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "carnaval-san-isidro-2026.png";
-      a.click();
-      URL.revokeObjectURL(url);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-    } catch (err) {
-      console.error(err);
     } finally {
       setIsExporting(false);
     }
@@ -275,10 +210,10 @@ export function PhotoFrameApp() {
                   <ImagePlus className="w-5 h-5" />
                 </button>
 
-                {/* Primary action: Share or Download */}
+                {/* Primary action: always tries share, falls back to download */}
                 <button
                   type="button"
-                  onClick={canNativeShare ? handleShare : handleDownload}
+                  onClick={handleShare}
                   disabled={isExporting}
                   className="
                     flex-1 h-11 rounded-xl
@@ -294,7 +229,7 @@ export function PhotoFrameApp() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : showSuccess ? (
                     <Check className="w-4 h-4 text-green-600" />
-                  ) : canNativeShare ? (
+                  ) : hasNativeShare ? (
                     <Share2 className="w-4 h-4" />
                   ) : (
                     <Download className="w-4 h-4" />
@@ -302,10 +237,10 @@ export function PhotoFrameApp() {
                   {isExporting
                     ? "Exportando..."
                     : showSuccess
-                    ? "¡Listo!"
-                    : canNativeShare
-                    ? "Compartir"
-                    : "Guardar"}
+                      ? "¡Listo!"
+                      : hasNativeShare
+                        ? "Compartir"
+                        : "Guardar"}
                 </button>
 
                 {/* Reset */}
