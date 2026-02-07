@@ -24,11 +24,20 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_AR",
     siteName: "Carnaval San Isidro 2026",
+    images: [
+      {
+        url: "/preview.png",
+        width: 1200,
+        height: 630,
+        alt: "Carnaval San Isidro 2026 - Armá tu foto",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Carnaval San Isidro 2026",
     description: "Armá tu foto con el marco del Carnaval!",
+    images: ["/preview.png"],
   },
 };
 

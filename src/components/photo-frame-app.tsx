@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { FrameCanvas, type FrameCanvasHandle } from "./frame-canvas";
 import { Particles } from "./particles";
+import { InstallPWAButton } from "./install-pwa-button";
 
 const FRAME_URL = "/marco-carnaval.png";
 
@@ -112,6 +113,7 @@ export function PhotoFrameApp() {
 
   return (
     <div className="bg-carnival-gradient relative min-h-screen min-h-dvh overflow-hidden">
+      <InstallPWAButton />
       <Particles count={30} />
 
       <input
